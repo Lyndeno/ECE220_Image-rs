@@ -1,6 +1,6 @@
 use byteorder::{ReadBytesExt, WriteBytesExt};
 use std::fs::File;
-use std::io::{Seek, SeekFrom};
+use std::io::{BufReader, BufWriter, Seek, SeekFrom};
 
 #[derive(Clone)]
 pub struct Pixel {
@@ -31,7 +31,7 @@ impl PixelArray {
     }
 
     pub fn from_bm(
-        f: &mut File,
+        f: &mut BufReader<File>,
         w: usize,
         h: usize,
         px_offset: usize,
@@ -54,7 +54,7 @@ impl PixelArray {
 
     pub fn write_bm(
         &self,
-        f: &mut File,
+        f: &mut BufWriter<File>,
         px_offset: usize,
         padding: usize,
     ) -> Result<(), std::io::Error> {

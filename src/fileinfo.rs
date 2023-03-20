@@ -1,5 +1,8 @@
 use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use std::fs::File;
+use std::io::BufReader;
+use std::io::BufWriter;
+use std::io::Read;
 use std::io::Seek;
 
 #[derive(Debug, Clone)]
@@ -52,7 +55,7 @@ impl FileInfo {
         (self.raw_size as usize / self.px_height as usize) - (self.px_width as usize * 3)
     }
 
-    pub fn from_file(f: &mut File) -> Result<Self, std::io::Error> {
+    pub fn from_file(f: &mut BufReader<File>) -> Result<Self, std::io::Error> {
         let mut i = Self::new();
         f.rewind()?;
 
@@ -85,7 +88,7 @@ impl FileInfo {
         Ok(i)
     }
 
-    pub fn write_file(&self, f: &mut File) -> Result<(), std::io::Error> {
+    pub fn write_file(&self, f: &mut BufWriter<File>) -> Result<(), std::io::Error> {
         f.rewind()?;
 
         f.write_u8(self.id1)?;

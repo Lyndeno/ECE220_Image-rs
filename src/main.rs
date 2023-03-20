@@ -1,4 +1,5 @@
 use std::fs::File;
+use std::io::{BufReader, BufWriter, Write};
 
 use byteorder::ReadBytesExt;
 use clap::Parser;
@@ -34,10 +35,11 @@ fn main() -> Result<(), std::io::Error> {
         panic!("Not a bitmap");
     }
 
-    let file_info = FileInfo::from_file(&mut inputfile)?;
+    let mut in_buf = BufReader::new(inputfile);
+    let file_info = FileInfo::from_file(&mut in_buf)?;
 
     let pixels = PixelArray::from_bm(
-        &mut inputfile,
+        &mut in_buf,
         file_info.px_width as usize,
         file_info.px_height as usize,
         file_info.pix_offset as usize,
@@ -45,12 +47,14 @@ fn main() -> Result<(), std::io::Error> {
     )?;
 
     let mut output_file = File::create(args.output)?;
-    file_info.write_file(&mut output_file)?;
+    let mut out_buf = BufWriter::new(output_file);
+    file_info.write_file(&mut out_buf)?;
     pixels.write_bm(
-        &mut output_file,
+        &mut out_buf,
         file_info.pix_offset as usize,
         file_info.get_padding(),
     )?;
+    out_buf.flush()?;
 
     Ok(())
 }
