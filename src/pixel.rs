@@ -55,8 +55,6 @@ impl PixelArray {
     pub fn write_bm(
         &self,
         f: &mut File,
-        w: usize,
-        h: usize,
         px_offset: usize,
         padding: usize,
     ) -> Result<(), std::io::Error> {
@@ -64,8 +62,8 @@ impl PixelArray {
 
         let pad: u8 = 0x00;
 
-        for y in 0..h {
-            for x in 0..w {
+        for y in 0..self.height {
+            for x in 0..self.width {
                 f.write_u8(self[(x, y)].b)?;
                 f.write_u8(self[(x, y)].g)?;
                 f.write_u8(self[(x, y)].r)?;

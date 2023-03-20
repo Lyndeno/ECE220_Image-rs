@@ -51,69 +51,69 @@ impl FileInfo {
     pub fn get_padding(&self) -> usize {
         (self.raw_size as usize / self.px_height as usize) - (self.px_width as usize * 3)
     }
-}
 
-pub fn read_file_info(f: &mut File) -> Result<FileInfo, std::io::Error> {
-    let mut i = FileInfo::new();
-    f.rewind()?;
+    pub fn from_file(f: &mut File) -> Result<Self, std::io::Error> {
+        let mut i = Self::new();
+        f.rewind()?;
 
-    i.id1 = f.read_u8()?;
-    i.id2 = f.read_u8()?;
+        i.id1 = f.read_u8()?;
+        i.id2 = f.read_u8()?;
 
-    i.size_file = f.read_u32::<NativeEndian>()?;
+        i.size_file = f.read_u32::<NativeEndian>()?;
 
-    i.unused1 = f.read_u16::<NativeEndian>()?;
-    i.unused2 = f.read_u16::<NativeEndian>()?;
+        i.unused1 = f.read_u16::<NativeEndian>()?;
+        i.unused2 = f.read_u16::<NativeEndian>()?;
 
-    i.pix_offset = f.read_u32::<NativeEndian>()?;
+        i.pix_offset = f.read_u32::<NativeEndian>()?;
 
-    i.dib_size = f.read_u32::<NativeEndian>()?;
-    i.px_width = f.read_u32::<NativeEndian>()?;
-    i.px_height = f.read_u32::<NativeEndian>()?;
+        i.dib_size = f.read_u32::<NativeEndian>()?;
+        i.px_width = f.read_u32::<NativeEndian>()?;
+        i.px_height = f.read_u32::<NativeEndian>()?;
 
-    i.cplane = f.read_u16::<NativeEndian>()?;
-    i.bit_px = f.read_u16::<NativeEndian>()?;
+        i.cplane = f.read_u16::<NativeEndian>()?;
+        i.bit_px = f.read_u16::<NativeEndian>()?;
 
-    i.px_compress = f.read_u32::<NativeEndian>()?;
-    i.raw_size = f.read_u32::<NativeEndian>()?;
+        i.px_compress = f.read_u32::<NativeEndian>()?;
+        i.raw_size = f.read_u32::<NativeEndian>()?;
 
-    i.dpi_h = f.read_u32::<NativeEndian>()?;
-    i.dpi_v = f.read_u32::<NativeEndian>()?;
+        i.dpi_h = f.read_u32::<NativeEndian>()?;
+        i.dpi_v = f.read_u32::<NativeEndian>()?;
 
-    i.colors = f.read_u32::<NativeEndian>()?;
-    i.imp_colors = f.read_u32::<NativeEndian>()?;
+        i.colors = f.read_u32::<NativeEndian>()?;
+        i.imp_colors = f.read_u32::<NativeEndian>()?;
 
-    Ok(i)
-}
+        Ok(i)
+    }
 
-pub fn write_file_info(i: FileInfo, f: &mut File) -> Result<FileInfo, std::io::Error> {
-    f.rewind()?;
+    pub fn write_file(&self, f: &mut File) -> Result<(), std::io::Error> {
+        f.rewind()?;
 
-    f.write_u8(i.id1)?;
-    f.write_u8(i.id2)?;
+        f.write_u8(self.id1)?;
+        f.write_u8(self.id2)?;
 
-    f.write_u32::<NativeEndian>(i.size_file)?;
+        f.write_u32::<NativeEndian>(self.size_file)?;
 
-    f.write_u16::<NativeEndian>(i.unused1)?;
-    f.write_u16::<NativeEndian>(i.unused2)?;
+        f.write_u16::<NativeEndian>(self.unused1)?;
+        f.write_u16::<NativeEndian>(self.unused2)?;
 
-    f.write_u32::<NativeEndian>(i.pix_offset)?;
+        f.write_u32::<NativeEndian>(self.pix_offset)?;
 
-    f.write_u32::<NativeEndian>(i.dib_size)?;
-    f.write_u32::<NativeEndian>(i.px_width)?;
-    f.write_u32::<NativeEndian>(i.px_height)?;
+        f.write_u32::<NativeEndian>(self.dib_size)?;
+        f.write_u32::<NativeEndian>(self.px_width)?;
+        f.write_u32::<NativeEndian>(self.px_height)?;
 
-    f.write_u16::<NativeEndian>(i.cplane)?;
-    f.write_u16::<NativeEndian>(i.bit_px)?;
+        f.write_u16::<NativeEndian>(self.cplane)?;
+        f.write_u16::<NativeEndian>(self.bit_px)?;
 
-    f.write_u32::<NativeEndian>(i.px_compress)?;
-    f.write_u32::<NativeEndian>(i.raw_size)?;
+        f.write_u32::<NativeEndian>(self.px_compress)?;
+        f.write_u32::<NativeEndian>(self.raw_size)?;
 
-    f.write_u32::<NativeEndian>(i.dpi_h)?;
-    f.write_u32::<NativeEndian>(i.dpi_v)?;
+        f.write_u32::<NativeEndian>(self.dpi_h)?;
+        f.write_u32::<NativeEndian>(self.dpi_v)?;
 
-    f.write_u32::<NativeEndian>(i.colors)?;
-    f.write_u32::<NativeEndian>(i.imp_colors)?;
+        f.write_u32::<NativeEndian>(self.colors)?;
+        f.write_u32::<NativeEndian>(self.imp_colors)?;
 
-    Ok(i)
+        Ok(())
+    }
 }
