@@ -2,7 +2,6 @@ use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use std::fs::File;
 use std::io::BufReader;
 use std::io::BufWriter;
-use std::io::Read;
 use std::io::Seek;
 
 #[derive(Debug, Clone)]

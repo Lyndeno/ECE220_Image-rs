@@ -18,6 +18,61 @@ enum ImgOp {
     Blur,
 }
 
+struct BitMap {
+    meta: FileInfo,
+    image: PixelArray,
+}
+
+impl BitMap {
+    pub fn from_buf(f: &mut BufReader<File>) -> Result<Self, std::io::Error> {
+        let meta = FileInfo::from_file(f)?;
+        let image = PixelArray::from_bm(
+            f,
+            meta.px_width as usize,
+            meta.px_height as usize,
+            meta.pix_offset as usize,
+            meta.get_padding(),
+        )?;
+        Ok(Self { meta, image })
+    }
+
+    pub fn write_buf(&self, f: &mut BufWriter<File>) -> Result<(), std::io::Error> {
+        self.meta.write_file(f)?;
+        self.image
+            .write_bm(f, self.meta.pix_offset as usize, self.meta.get_padding())?;
+        f.flush()?;
+        Ok(())
+    }
+
+    pub fn make_red(self) -> Self {
+        Self {
+            meta: self.meta,
+            image: self.image.make_red(),
+        }
+    }
+
+    pub fn make_green(self) -> Self {
+        Self {
+            meta: self.meta,
+            image: self.image.make_green(),
+        }
+    }
+
+    pub fn make_blue(self) -> Self {
+        Self {
+            meta: self.meta,
+            image: self.image.make_blue(),
+        }
+    }
+
+    pub fn make_blur(self, blur_x: usize, blur_y: usize) -> Self {
+        Self {
+            meta: self.meta,
+            image: self.image.make_blur(blur_x, blur_y),
+        }
+    }
+}
+
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
@@ -35,45 +90,33 @@ struct Args {
 fn main() -> Result<(), std::io::Error> {
     let args = Args::parse();
 
-    let mut inputfile = File::open(args.input)?;
-    let mut id = [0, 0];
-    //inputfile.read_exact(&mut id)?;
-    id[0] = inputfile.read_u8()?;
-    id[1] = inputfile.read_u8()?;
+    let in_file = File::open(args.input)?;
+    let mut in_buf = BufReader::new(in_file);
 
-    if String::from_utf8_lossy(&id) == String::from("BM") {
+    let mut id = [0, 0];
+    id[0] = in_buf.read_u8()?;
+    id[1] = in_buf.read_u8()?;
+
+    if String::from_utf8_lossy(&id) == *"BM" {
         println!("Valid bitmap");
     } else {
         panic!("Not a bitmap");
     }
 
-    let mut in_buf = BufReader::new(inputfile);
     let file_info = FileInfo::from_file(&mut in_buf)?;
+    let in_bm = BitMap::from_buf(&mut in_buf)?;
 
-    let pixels = PixelArray::from_bm(
-        &mut in_buf,
-        file_info.px_width as usize,
-        file_info.px_height as usize,
-        file_info.pix_offset as usize,
-        file_info.get_padding(),
-    )?;
-
-    let out_image = match args.operation {
-        ImgOp::Red => pixels.make_red(),
-        ImgOp::Green => pixels.make_green(),
-        ImgOp::Blue => pixels.make_blue(),
-        ImgOp::Blur => pixels.make_blur(7, 7),
+    let out_bm = match args.operation {
+        ImgOp::Red => in_bm.make_red(),
+        ImgOp::Green => in_bm.make_green(),
+        ImgOp::Blue => in_bm.make_blue(),
+        ImgOp::Blur => in_bm.make_blur(7, 7),
     };
 
-    let mut output_file = File::create(args.output)?;
-    let mut out_buf = BufWriter::new(output_file);
+    let out_file = File::create(args.output)?;
+    let mut out_buf = BufWriter::new(out_file);
     file_info.write_file(&mut out_buf)?;
-    out_image.write_bm(
-        &mut out_buf,
-        file_info.pix_offset as usize,
-        file_info.get_padding(),
-    )?;
-    out_buf.flush()?;
+    out_bm.write_buf(&mut out_buf)?;
 
     Ok(())
 }

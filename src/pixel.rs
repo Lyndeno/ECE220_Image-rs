@@ -1,7 +1,6 @@
 use byteorder::{ReadBytesExt, WriteBytesExt};
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Seek, SeekFrom};
-use std::num::Wrapping;
 
 #[derive(Clone)]
 pub struct Pixel {
@@ -85,7 +84,7 @@ impl PixelArray {
                 f.write_u8(self[(x, y)].r)?;
             }
             //f.seek(SeekFrom::Current(padding as i64))?;
-            for i in 0..padding {
+            for _ in 0..padding {
                 f.write_u8(pad)?;
             }
         }
@@ -112,7 +111,7 @@ impl PixelArray {
         self.modify(&Pixel::make_blue)
     }
 
-    pub fn make_blur(&self, blur_y: usize, blur_x: usize) -> Self {
+    pub fn make_blur(self, blur_y: usize, blur_x: usize) -> Self {
         let mut new = Self::new(self.width, self.height);
         for y in 0..self.height {
             for x in 0..self.width {
