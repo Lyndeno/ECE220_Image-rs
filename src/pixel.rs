@@ -13,6 +13,21 @@ impl Pixel {
     pub fn new() -> Self {
         Self { r: 0, g: 0, b: 0 }
     }
+
+    pub fn make_red(&mut self) {
+        self.g = 0;
+        self.b = 0;
+    }
+
+    pub fn make_green(&mut self) {
+        self.r = 0;
+        self.b = 0;
+    }
+
+    pub fn make_blue(&mut self) {
+        self.g = 0;
+        self.r = 0;
+    }
 }
 
 pub struct PixelArray {
@@ -75,6 +90,27 @@ impl PixelArray {
         }
 
         Ok(())
+    }
+
+    pub fn modify(mut self, f: &dyn Fn(&mut Pixel)) -> Self {
+        for y in 0..self.height {
+            for x in 0..self.width {
+                f(&mut self[(x, y)]);
+            }
+        }
+        self
+    }
+
+    pub fn make_red(mut self) -> Self {
+        self.modify(&Pixel::make_red)
+    }
+
+    pub fn make_green(mut self) -> Self {
+        self.modify(&Pixel::make_green)
+    }
+
+    pub fn make_blue(mut self) -> Self {
+        self.modify(&Pixel::make_blue)
     }
 }
 

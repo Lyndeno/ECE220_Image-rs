@@ -2,13 +2,20 @@ use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 
 use byteorder::ReadBytesExt;
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 
 mod fileinfo;
 mod pixel;
 
 use crate::fileinfo::FileInfo;
 use crate::pixel::PixelArray;
+
+#[derive(ValueEnum, Clone, Debug)]
+enum ImgOp {
+    Red,
+    Green,
+    Blue,
+}
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -18,6 +25,10 @@ struct Args {
 
     /// Name of output file
     output: String,
+
+    /// Operation to apply
+    #[arg(value_enum)]
+    operation: ImgOp,
 }
 
 fn main() -> Result<(), std::io::Error> {
@@ -46,10 +57,16 @@ fn main() -> Result<(), std::io::Error> {
         file_info.get_padding(),
     )?;
 
+    let out_image = match args.operation {
+        ImgOp::Red => pixels.make_red(),
+        ImgOp::Green => pixels.make_green(),
+        ImgOp::Blue => pixels.make_blue(),
+    };
+
     let mut output_file = File::create(args.output)?;
     let mut out_buf = BufWriter::new(output_file);
     file_info.write_file(&mut out_buf)?;
-    pixels.write_bm(
+    out_image.write_bm(
         &mut out_buf,
         file_info.pix_offset as usize,
         file_info.get_padding(),
