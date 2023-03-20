@@ -93,23 +93,21 @@ impl PixelArray {
     }
 
     pub fn modify(mut self, f: &dyn Fn(&mut Pixel)) -> Self {
-        for y in 0..self.height {
-            for x in 0..self.width {
-                f(&mut self[(x, y)]);
-            }
+        for p in &mut self.data {
+            f(p);
         }
         self
     }
 
-    pub fn make_red(mut self) -> Self {
+    pub fn make_red(self) -> Self {
         self.modify(&Pixel::make_red)
     }
 
-    pub fn make_green(mut self) -> Self {
+    pub fn make_green(self) -> Self {
         self.modify(&Pixel::make_green)
     }
 
-    pub fn make_blue(mut self) -> Self {
+    pub fn make_blue(self) -> Self {
         self.modify(&Pixel::make_blue)
     }
 }
