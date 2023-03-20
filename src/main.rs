@@ -15,6 +15,7 @@ enum ImgOp {
     Red,
     Green,
     Blue,
+    Blur,
 }
 
 #[derive(Parser, Debug)]
@@ -61,6 +62,7 @@ fn main() -> Result<(), std::io::Error> {
         ImgOp::Red => pixels.make_red(),
         ImgOp::Green => pixels.make_green(),
         ImgOp::Blue => pixels.make_blue(),
+        ImgOp::Blur => pixels.make_blur(7, 7),
     };
 
     let mut output_file = File::create(args.output)?;
