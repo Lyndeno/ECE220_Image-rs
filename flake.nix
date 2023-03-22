@@ -24,6 +24,7 @@
       packages.ece-img = naersk-lib.buildPackage {
         pname = "ece-img";
         root = ./.;
+        doDoc = true;
       };
       packages.default = packages.ece-img;
 
