@@ -1,8 +1,9 @@
 use byteorder::{ReadBytesExt, WriteBytesExt};
+use rayon::prelude::*;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Seek, SeekFrom};
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Pixel {
     r: u8,
     g: u8,
@@ -30,6 +31,7 @@ impl Pixel {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct PixelArray {
     data: Vec<Pixel>,
     pub width: usize,
@@ -177,10 +179,44 @@ impl std::ops::IndexMut<XyPos> for PixelArray {
 mod tests {
     use std::num::Wrapping;
 
+    use crate::fileinfo::FileInfo;
+    use std::fs::File;
+    use std::io::BufReader;
+
+    use super::PixelArray;
+
     #[test]
     fn number() {
         let zero = Wrapping(0usize);
         let one = Wrapping(1usize);
         print!("{}", zero - one);
+    }
+
+    #[test]
+    fn test_blurred() {
+        let f = File::open("./Cat.bmp").unwrap();
+        let mut buf = BufReader::new(f);
+        let meta = FileInfo::from_file(&mut buf).unwrap();
+        let orig = PixelArray::from_bm(
+            &mut buf,
+            meta.px_width as usize,
+            meta.px_height as usize,
+            meta.pix_offset as usize,
+            meta.get_padding(),
+        )
+        .unwrap();
+        let f_blur = File::open("./Cat_blurred.bmp").unwrap();
+        let mut buf_blur = BufReader::new(f_blur);
+        let meta_blur = FileInfo::from_file(&mut buf_blur).unwrap();
+        let blur = PixelArray::from_bm(
+            &mut buf_blur,
+            meta_blur.px_width as usize,
+            meta_blur.px_height as usize,
+            meta_blur.pix_offset as usize,
+            meta_blur.get_padding(),
+        )
+        .unwrap();
+
+        assert_eq!(blur, orig.make_blur(7, 7))
     }
 }
