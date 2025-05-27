@@ -15,31 +15,27 @@ impl Pixel {
         Self { r: 0, g: 0, b: 0 }
     }
 
-    pub fn make_red(&mut self) {
-        self.g = 0;
-        self.b = 0;
-    }
-
-    pub fn make_green(&mut self) {
-        self.r = 0;
-        self.b = 0;
-    }
-
-    pub fn make_blue(&mut self) {
-        self.g = 0;
-        self.r = 0;
-    }
-}
-
-impl From<Vec<Vec<Pixel>>> for PixelArray {
-    fn from(value: Vec<Vec<Pixel>>) -> Self {
-        let height = value.len();
-        let width = value[0].len();
-        let data: Vec<Pixel> = value.into_iter().flatten().collect();
+    pub fn make_red(&self) -> Self {
         Self {
-            data,
-            width,
-            height,
+            r: self.r,
+            g: 0,
+            b: 0,
+        }
+    }
+
+    pub fn make_green(&self) -> Self {
+        Self {
+            r: 0,
+            g: self.g,
+            b: 0,
+        }
+    }
+
+    pub fn make_blue(&self) -> Self {
+        Self {
+            r: 0,
+            g: 0,
+            b: self.b,
         }
     }
 }
@@ -107,10 +103,8 @@ impl PixelArray {
         Ok(())
     }
 
-    pub fn modify(mut self, f: &dyn Fn(&mut Pixel)) -> Self {
-        for p in &mut self.data {
-            f(p);
-        }
+    pub fn modify(mut self, f: &(dyn Fn(&Pixel) -> Pixel + Sync)) -> Self {
+        self.data.par_iter_mut().for_each(|p| *p = f(p));
         self
     }
 
@@ -172,7 +166,11 @@ impl PixelArray {
                 pixel.b = b_avg as u8;
             });
         });
-        new.into()
+        Self {
+            width: self.width,
+            height: self.height,
+            data: new.into_iter().flatten().collect(),
+        }
     }
 }
 
@@ -199,6 +197,20 @@ mod tests {
 
     use super::PixelArray;
 
+    fn get_pixel_array(path: &str) -> PixelArray {
+        let f = File::open(path).unwrap();
+        let mut buf = BufReader::new(f);
+        let meta = FileInfo::from_file(&mut buf).unwrap();
+        PixelArray::from_bm(
+            &mut buf,
+            meta.px_width as usize,
+            meta.px_height as usize,
+            meta.pix_offset as usize,
+            meta.get_padding(),
+        )
+        .unwrap()
+    }
+
     #[test]
     fn number() {
         let zero = Wrapping(0usize);
@@ -208,29 +220,29 @@ mod tests {
 
     #[test]
     fn test_blurred() {
-        let f = File::open("./Cat.bmp").unwrap();
-        let mut buf = BufReader::new(f);
-        let meta = FileInfo::from_file(&mut buf).unwrap();
-        let orig = PixelArray::from_bm(
-            &mut buf,
-            meta.px_width as usize,
-            meta.px_height as usize,
-            meta.pix_offset as usize,
-            meta.get_padding(),
-        )
-        .unwrap();
-        let f_blur = File::open("./Cat_blurred.bmp").unwrap();
-        let mut buf_blur = BufReader::new(f_blur);
-        let meta_blur = FileInfo::from_file(&mut buf_blur).unwrap();
-        let blur = PixelArray::from_bm(
-            &mut buf_blur,
-            meta_blur.px_width as usize,
-            meta_blur.px_height as usize,
-            meta_blur.pix_offset as usize,
-            meta_blur.get_padding(),
-        )
-        .unwrap();
-
+        let orig = get_pixel_array("./Cat.bmp");
+        let blur = get_pixel_array("./Cat_blurred.bmp");
         assert_eq!(blur, orig.make_blur(7, 7))
+    }
+
+    #[test]
+    fn test_red() {
+        let orig = get_pixel_array("./Cat.bmp");
+        let expected = get_pixel_array("./Cat_red.bmp");
+        assert_eq!(expected, orig.make_red())
+    }
+
+    #[test]
+    fn test_blue() {
+        let orig = get_pixel_array("./Cat.bmp");
+        let expected = get_pixel_array("./Cat_blue.bmp");
+        assert_eq!(expected, orig.make_blue())
+    }
+
+    #[test]
+    fn test_green() {
+        let orig = get_pixel_array("./Cat.bmp");
+        let expected = get_pixel_array("./Cat_green.bmp");
+        assert_eq!(expected, orig.make_green())
     }
 }
