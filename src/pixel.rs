@@ -31,6 +31,19 @@ impl Pixel {
     }
 }
 
+impl From<Vec<Vec<Pixel>>> for PixelArray {
+    fn from(value: Vec<Vec<Pixel>>) -> Self {
+        let height = value.len();
+        let width = value[0].len();
+        let data: Vec<Pixel> = value.into_iter().flatten().collect();
+        Self {
+            data,
+            width,
+            height,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct PixelArray {
     data: Vec<Pixel>,
@@ -160,6 +173,55 @@ impl PixelArray {
         }
         new
     }
+
+    pub fn make_blur_par(self, blur_y: usize, blur_x: usize) -> Self {
+        //let mut new = Self::new(self.width, self.height);
+        let mut new = vec![vec![Pixel::new(); self.width]; self.height];
+        new.par_iter_mut().enumerate().for_each(|(y, row)| {
+            row.par_iter_mut().enumerate().for_each(|(x, pixel)| {
+                let x_offset = (blur_x - 1) / 2;
+                let y_offset = (blur_y - 1) / 2;
+
+                // Use Wrapping() so that if we subtract and go into the negatives we wrap around.
+                // Then we only check that we are not exceeding the maximum height/width.
+                let h_low_bound = x.saturating_sub(x_offset);
+                let mut h_high_bound = x.saturating_add(x_offset);
+                if h_high_bound >= self.width {
+                    h_high_bound = self.width - 1;
+                }
+                let v_low_bound = y.saturating_sub(y_offset);
+                let mut v_high_bound = y.saturating_add(y_offset);
+                if v_high_bound >= self.height {
+                    v_high_bound = self.height - 1;
+                }
+
+                let mut pix_count = 0;
+
+                let mut r_tot = 0;
+                let mut g_tot = 0;
+                let mut b_tot = 0;
+
+                for i in h_low_bound..=h_high_bound {
+                    for j in v_low_bound..=v_high_bound {
+                        r_tot += self[(i, j)].r as usize;
+                        g_tot += self[(i, j)].g as usize;
+                        b_tot += self[(i, j)].b as usize;
+
+                        pix_count += 1;
+                    }
+                }
+
+                let r_avg = r_tot / pix_count;
+                let g_avg = g_tot / pix_count;
+                let b_avg = b_tot / pix_count;
+
+                pixel.r = r_avg as u8;
+                pixel.g = g_avg as u8;
+                pixel.b = b_avg as u8;
+            });
+        });
+        new.into()
+    }
 }
 
 type XyPos = (usize, usize);
@@ -218,5 +280,33 @@ mod tests {
         .unwrap();
 
         assert_eq!(blur, orig.make_blur(7, 7))
+    }
+
+    #[test]
+    fn test_blurred_par() {
+        let f = File::open("./Cat.bmp").unwrap();
+        let mut buf = BufReader::new(f);
+        let meta = FileInfo::from_file(&mut buf).unwrap();
+        let orig = PixelArray::from_bm(
+            &mut buf,
+            meta.px_width as usize,
+            meta.px_height as usize,
+            meta.pix_offset as usize,
+            meta.get_padding(),
+        )
+        .unwrap();
+        let f_blur = File::open("./Cat_blurred.bmp").unwrap();
+        let mut buf_blur = BufReader::new(f_blur);
+        let meta_blur = FileInfo::from_file(&mut buf_blur).unwrap();
+        let blur = PixelArray::from_bm(
+            &mut buf_blur,
+            meta_blur.px_width as usize,
+            meta_blur.px_height as usize,
+            meta_blur.pix_offset as usize,
+            meta_blur.get_padding(),
+        )
+        .unwrap();
+
+        assert_eq!(blur, orig.make_blur_par(7, 7))
     }
 }
